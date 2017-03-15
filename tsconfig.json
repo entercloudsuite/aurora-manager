@@ -1,0 +1,24 @@
+{
+    "compilerOptions": {
+        "target": "es2015",
+        "rootDir": "./app/",
+        "outDir": "./build/",
+        "module": "commonjs",
+        "declaration": true,
+        "noImplicitAny": false,
+        "removeComments": true,
+        "moduleResolution": "node",
+        "sourceMap": true,
+        "inlineSources": true,
+        "baseUrl": ".",
+        "typeRoots": [
+          "./node_modules/@types"
+        ]
+    },
+    "include": [
+        "app/app.ts"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}
