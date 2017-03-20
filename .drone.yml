@@ -4,6 +4,7 @@ pipeline:
     commands:
         - npm install
         - npm run --silent build || true
+        - npm run test
 
 services:
   rabbit:
