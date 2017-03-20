@@ -1,5 +1,6 @@
-var config = require('../../topology');
+import fs = require('fs');
 import { Logger, LoggerFactory } from '../common';
+import { APP_CONFIG } from '../config';
 
 export class AMQPTopology {
   private connection: {};
@@ -16,16 +17,19 @@ export class AMQPTopology {
     servicesRequests: '',
     servicesMessages: '',
   };
-  public MESSAGES = {};
+  public MESSAGES = {
+    newService: ''
+  };
 
   public static LOGGER: Logger = LoggerFactory.getLogger();
 
   constructor() {
+    const config = JSON.parse(fs.readFileSync(APP_CONFIG.topologyFile, 'utf-8'));
     this.connection = {
-      user: process.env.RABBIT_USER,
-      pass: process.env.RABBIT_PASSWORD,
-      server: [ process.env.RABBIT_HOST ],
-      port: process.env.RABBIT_PORT,
+      user: APP_CONFIG.rabbitUser,
+      pass: APP_CONFIG.rabbitUserPassword,
+      server: [ APP_CONFIG.rabbitHost ],
+      port: APP_CONFIG.rabbitPort,
       vhost: '%2f',
       timeout: 1000,
       failAfter: 30,
