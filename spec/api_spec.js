@@ -1,7 +1,7 @@
 var request = require("request");
 var config = require('dotenv').config({path: '.env.ci'})
 
-var app = require("../../build/app/app.js")
+var app = require("../build/app/app.js")
 
 var base_url = "http://localhost:3001/"
 
@@ -12,7 +12,7 @@ describe("gateway", function() {
         expect(response.statusCode).toBe(200);
         done();
       });
-      
+
     });
   });
 });
