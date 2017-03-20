@@ -1,0 +1,34 @@
+{
+  "exchanges": {
+    "generalExchange": {
+      "name": "AURORA_GENERAL_EXCHANGE",
+      "type": "direct"
+    },
+    "servicesExchange": {
+      "name": "AURORA_SERVICES_EXCHANGE",
+      "type": "topic"
+    }
+  },
+  "queues": {
+    "general": "AURORA_GENERAL",
+    "servicesRequests": "AURORA_SERVICES_REQUESTS",
+    "servicesMessages": "AURORA_SERVICES_MESSAGES"
+  },
+  "bindings": {
+    "AURORA_GENERAL": ["AURORA_GENERAL_EXCHANGE", []],
+    "AURORA_SERVICES_REQUESTS": ["AURORA_SERVICES_EXCHANGE", ["NOTIFICATION*"]],
+    "AURORA_SERVICES_MESSAGES": [ "AURORA_SERVICES_EXCHANGE", []]
+  },
+  "messages": {
+    "newService": "NEW_SERVICE",
+    "removeService": "REMOVE_SERVICE",
+    "serviceUpdate": "SERVICE_UPDATE",
+    "newServiceCatalog": "NEW_SERVICE_CATALOG",
+    "newTenantList": "NEW_TENANT_LIST",
+    "userAuthenticated": "USER_AUTHENTICATED",
+    "scheduleJob": "SCHEDULE_NEW_JOB",
+    "metadadaResponse": "METADATA_RESPONSE",
+    "metadataRequest": "METADATA_REQUEST",
+    "registerPublisher": "REGISTER_NEW_PUBLISHER"
+  }
+}
