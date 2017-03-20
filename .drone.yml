@@ -6,6 +6,12 @@ pipeline:
         - npm run --silent build || true
         - npm run test
 
+  publish:
+    image: plugins/docker
+    repo: ecsdevops/aurora-manager
+    username: ecsdevops
+    password: ${DOCKER_PASSWORD}
+
 services:
   rabbit:
     image: rabbitmq:alpine
