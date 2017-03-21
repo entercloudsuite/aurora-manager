@@ -1,4 +1,4 @@
-import rabbit = require('rabbot');
+const rabbit: any = require('rabbot');
 import { Topology } from '../config';
 import { Logger, LoggerFactory, InternalError } from './';
 

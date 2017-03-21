@@ -1,6 +1,6 @@
 import { Logger, LoggerFactory, RabbitClient, Stack, Request, ResourceNotFoundError } from '../common';
 import { ServiceModel, Service } from '../models';
-import objectHash = require('object-hash');
+const objectHash: any = require('object-hash');
 import http = require('http');
 import { Topology, APP_CONFIG } from '../config';
 import { ServiceUtils } from '../utils';
@@ -99,9 +99,9 @@ export class ServiceManager {
   static updateStatus(message: any) {
     ServiceManager.LOGGER.debug(`New service status - ${message.body.status} - from - ${message.body.name}`);
     if (message.body.status === 'READY') {
-      this.updateStack(this.serviceTable[message.body.id].name, message.body.id);
+      this['updateStack'](this['serviceTable'][message.body.id].name, message.body.id);
     } else if (message.body.status === 'HEARTBEAT') {
-       this.serviceTable[message.body.id].lastUpdate = Date.now();
+       this['serviceTable'][message.body.id].lastUpdate = Date.now();
     }
   }
 

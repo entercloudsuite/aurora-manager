@@ -1,4 +1,4 @@
-import serializeError = require('serialize-error');
+const serializeError: any = require('serialize-error');
 import { ApiError, InvalidJsonError, InternalError } from '../errors';
 import { Logger, LoggerFactory } from '../../logging';
 
