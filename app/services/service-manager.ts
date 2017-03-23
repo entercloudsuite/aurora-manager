@@ -10,9 +10,9 @@ export class ServiceManager {
   private serviceStacks: {};
   private lastUsedService: {};
   private rabbitClient: RabbitClient;
-  
+
   private static LOGGER: Logger = LoggerFactory.getLogger();
-  
+
   constructor() {
     this.serviceTable = {};
     this.serviceStacks = {};
@@ -22,11 +22,11 @@ export class ServiceManager {
   }
 
   /**
-   * Creates a new service object, updates the service stack and notifies the gateway 
-   * 
-   * @param {Service} serviceOptions 
-   * @returns {Promise<any>} 
-   * 
+   * Creates a new service object, updates the service stack and notifies the gateway
+   *
+   * @param {Service} serviceOptions
+   * @returns {Promise<any>}
+   *
    * @memberOf ServiceManager
    */
   registerService(serviceOptions: Service): Promise<any> {
@@ -35,41 +35,39 @@ export class ServiceManager {
       serviceOptions.host, serviceOptions.port, serviceOptions.name,
       'READY', serviceOptions.routingPath, serviceOptions.options
     );
-    
+
     const serviceId = objectHash(newService);
     this.serviceTable[serviceId] = newService;
 
     if (!this.serviceStacks[newService.name]) {
-      // this.generalQueue.publishMessage(
-      //   this.generalQueue.generalExchange,
-      //   this.generalQueue.messageTypes.NEW_SERVICE,
-      //   '',
-      //   serviceOptions
-      // );
-      this.notifyGateway(newService);
+       this.rabbitClient.publishMessage(
+         Topology.MESSAGES.newService,
+         '',
+         serviceOptions
+       );
+      //this.notifyGateway(newService);
     }
-    
+
     this.updateStack(serviceOptions.name, serviceId);
-    
+
 
     return Promise.resolve(serviceId);
   }
 
   registerHandlers() {
     ServiceManager.updateStatus.bind(this);
-    
+
     this.rabbitClient.rabbitConnection.handle(
-      Topology.MESSAGES.newService,
+      Topology.MESSAGES.serviceUpdate,
       ServiceManager.updateStatus
     );
   }
-
   /**
    * Notify gateway on a new registered service
    *
-   * @todo Use RabbitMQ transport layer in order to notify the gateway 
-   * @param {Service} newService 
-   * 
+   * @todo Use RabbitMQ transport layer in order to notify the gateway
+   * @param {Service} newService
+   *
    * @memberOf ServiceManager
    */
   notifyGateway(newService: Service) {
@@ -81,7 +79,7 @@ export class ServiceManager {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     };
-    
+
     const requestBody = newService.toJSON();
     ServiceManager.LOGGER.debug(`Calling gateway on new service - ${JSON.stringify(newService)}`);
     ServiceUtils.sendRequest(requestOptions, requestBody);
@@ -90,10 +88,10 @@ export class ServiceManager {
   /**
    * Change service status on new notifications.
    * Status list - 'READY', 'HEARTBEAT', 'STARTED', 'DOWN'
-   * 
+   *
    * @static
-   * @param {*} message 
-   * 
+   * @param {*} message
+   *
    * @memberOf ServiceManager
    */
   static updateStatus(message: any) {
@@ -107,10 +105,10 @@ export class ServiceManager {
 
   /**
    * Adds a new service to the service stack
-   * 
-   * @param {string} serviceName 
-   * @param {string} serviceId 
-   * 
+   *
+   * @param {string} serviceName
+   * @param {string} serviceId
+   *
    * @memberOf ServiceManager
    */
   updateStack(serviceName: string, serviceId: string) {
@@ -121,13 +119,13 @@ export class ServiceManager {
 
     this.serviceStacks[serviceName].push(serviceId);
   }
-  
+
   /**
    * Searches for an available service in in the stack
-   * 
-   * @param {string} serviceName 
-   * @returns {Promise<any>} 
-   * 
+   *
+   * @param {string} serviceName
+   * @returns {Promise<any>}
+   *
    * @memberOf ServiceManager
    */
   getAvailableService(serviceName: string): Promise<any> {
@@ -138,7 +136,7 @@ export class ServiceManager {
     } else {
       return Promise.reject(new ResourceNotFoundError());
     }
-    
+
     return Promise.resolve(this.serviceTable[serviceId].toJSON());
   }
 }
