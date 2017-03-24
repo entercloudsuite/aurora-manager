@@ -1,9 +1,9 @@
-import { Logger, LoggerFactory, RabbitClient, Stack, Request, ResourceNotFoundError } from '../common';
+import { Logger, LoggerFactory, RabbitClient, Stack, Request, ResourceNotFoundError, EventEmitter } from '../common';
 import { ServiceModel, Service } from '../models';
-const objectHash: any = require('object-hash');
-import http = require('http');
 import { Topology, APP_CONFIG } from '../config';
 import { ServiceUtils } from '../utils';
+import http = require('http');
+const objectHash: any = require('object-hash');
 
 export class ServiceManager {
   public serviceTable: {};
@@ -33,56 +33,51 @@ export class ServiceManager {
     ServiceManager.LOGGER.info(`Registering new service - ${JSON.stringify(serviceOptions)}`);
     const newService = new ServiceModel(
       serviceOptions.host, serviceOptions.port, serviceOptions.name,
-      'READY', serviceOptions.routingPath, serviceOptions.options
+      serviceOptions.state || 'READY', serviceOptions.routingPath, serviceOptions.options, 
+      serviceOptions.id 
     );
 
-    const serviceId = objectHash(newService);
-    this.serviceTable[serviceId] = newService;
+    if (!newService.id) {
+      newService.id = objectHash(newService);
+    }
 
+    this.serviceTable[newService.id] = newService;
+
+    // Notify gateway on new service
     if (!this.serviceStacks[newService.name]) {
        this.rabbitClient.publishMessage(
          Topology.MESSAGES.newService,
          '',
          serviceOptions
        );
-      //this.notifyGateway(newService);
     }
 
-    this.updateStack(serviceOptions.name, serviceId);
+    this.updateStack(serviceOptions.name, newService.id);
 
 
-    return Promise.resolve(serviceId);
+    return Promise.resolve(newService);
+  }
+
+  /**
+   * @todo Add service instance HEARTBEAT check through AMQP messages
+   * @param newService 
+   */
+  static updateFromConfigFile(newService: Service) {
+    this['registerService'](newService)
+      .then(service => {
+        ServiceManager.LOGGER.debug('Registered service from config file');
+      });
   }
 
   registerHandlers() {
-    ServiceManager.updateStatus.bind(this);
+    ServiceManager.LOGGER.debug('Registering message handlers');
 
     this.rabbitClient.rabbitConnection.handle(
       Topology.MESSAGES.serviceUpdate,
-      ServiceManager.updateStatus
+      ServiceManager.updateStatus.bind(this)
     );
-  }
-  /**
-   * Notify gateway on a new registered service
-   *
-   * @todo Use RabbitMQ transport layer in order to notify the gateway
-   * @param {Service} newService
-   *
-   * @memberOf ServiceManager
-   */
-  notifyGateway(newService: Service) {
-    const requestOptions = <Request> {
-      protocol: 'http:',
-      host: APP_CONFIG.gatewayHost,
-      port: APP_CONFIG.gatewayPort,
-      path: '/register',
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    };
 
-    const requestBody = newService.toJSON();
-    ServiceManager.LOGGER.debug(`Calling gateway on new service - ${JSON.stringify(newService)}`);
-    ServiceUtils.sendRequest(requestOptions, requestBody);
+    EventEmitter.eventEmitter.on(EventEmitter.UPDATE_FROM_FILE, ServiceManager.updateFromConfigFile.bind(this));
   }
 
   /**

@@ -17,8 +17,9 @@ export class ServiceManagerController extends RestController {
         options['host'] = ipAddress;
         return this.serviceManager.registerService(options);
       })
-      .then(serviceId => {
-        return this.respond(res, serviceId);
+      .then(registeredService => {
+        ServiceUtils.updateServicesConfigFile(registeredService);
+        return this.respond(res, registeredService.id);
       });
   }
 
@@ -26,6 +27,15 @@ export class ServiceManagerController extends RestController {
     return Promise.resolve(this.respond(res, this.serviceManager.serviceTable));
   }
   
+  /**
+   * 
+   * @todo Add different endpoint with a parameter (/service/:serviceName)
+   * @param {any} req 
+   * @param {any} res 
+   * @returns {Promise<any>} 
+   * 
+   * @memberOf ServiceManagerController
+   */
   listAvailableService(req, res): Promise<any> {
     return this.serviceManager.getAvailableService(req.headers['service-name'])
       .then(serviceDetails => {
