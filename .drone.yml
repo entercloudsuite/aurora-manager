@@ -2,7 +2,7 @@ pipeline:
   build:
     image: node:6.9
     commands:
-        - npm install
+        - npm install --silent
         - run --silent build || true
         - npm run test
 
