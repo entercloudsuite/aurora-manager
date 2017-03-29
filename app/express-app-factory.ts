@@ -1,10 +1,12 @@
 import { Express, Router, RequestHandler, ErrorRequestHandler } from 'express';
 import express = require('express');
 import bodyParser = require('body-parser');
-import { Logger, LoggerFactory } from './common';
+import { Logger, LoggerFactory, EventEmitter } from './common';
+import { ServiceUtils } from './utils';
+import fs = require('fs');
 
 export class ExpressAppFactory {
-  
+  private static LOGGER: Logger = LoggerFactory.getLogger();
   private constructor() {}
 
   static getExpressApp(
@@ -25,6 +27,19 @@ export class ExpressAppFactory {
 
     if (postApiRouterMiddlewareFns != null) {
       postApiRouterMiddlewareFns.forEach((middlewareFn) => app.use(middlewareFn));
+    }
+
+    if (fs.existsSync('./services.yml')) {
+      ServiceUtils.parseServicesConfigFile()
+        .then(servicesList => servicesList.map(service => { 
+          EventEmitter.eventEmitter.emit(EventEmitter.UPDATE_FROM_FILE, service);
+        }))
+        .catch(error => {
+          ExpressAppFactory.LOGGER.warn(error);
+        });
+    } else {
+      ExpressAppFactory.LOGGER.debug('Creating empty routes file')
+      fs.closeSync(fs.openSync('./services.yml', 'w'));
     }
 
     return app;

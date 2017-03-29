@@ -18,6 +18,7 @@ export class AMQPTopology {
     servicesMessages: '',
   };
   public MESSAGES = {
+    serviceUpdate: '',
     newService: ''
   };
 

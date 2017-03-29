@@ -17,7 +17,7 @@ const errorMiddleware = [
   RestErrorMiddleware.serializeRestError
 ];
 
-const app: Express = ExpressAppFactory.getExpressApp(apiRouter, null, errorMiddleware);
+export const app: Express = ExpressAppFactory.getExpressApp(apiRouter, null, errorMiddleware);
 
 app.listen(APP_CONFIG.port, () => {
   LOGGER.info(`Express server listening on port ${APP_CONFIG.port}.`);

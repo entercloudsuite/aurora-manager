@@ -23,11 +23,16 @@ export class RabbitClient {
   }
 
   publishMessage(type: string, routingKey: string, message: any): Promise<any> {
-    RabbitClient.LOGGER.debug(`Publishing message - ${JSON.stringify(message)} on ${this.exchangeName}`);
     return this.rabbitConnection.publish(this.exchangeName, {
       type: type,
-      routingKey: routingKey,
+      routingKey: routingKey || "",
       body: message
+    })
+    .then(result => {
+      RabbitClient.LOGGER.debug(`Publishing message ${type} on ${this.exchangeName} with ${JSON.stringify(message)}`);
+    })
+    .catch(error => {
+      RabbitClient.LOGGER.error(`Unable to publish message message ${type} on ${this.exchangeName} with ${JSON.stringify(message)}`);
     });
   }
 }

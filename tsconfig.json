@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
-        "target": "es2015",
-        "rootDir": "./app/",
+        "target": "es6",
+        "rootDirs": ["./app/", "./test"],
         "outDir": "./build/",
         "module": "commonjs",
         "declaration": true,
@@ -16,7 +16,8 @@
         ]
     },
     "include": [
-        "app/app.ts"
+        "app/app.ts",
+        "test/*.ts"
     ],
     "exclude": [
         "node_modules"

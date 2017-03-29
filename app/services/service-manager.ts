@@ -1,18 +1,18 @@
-import { Logger, LoggerFactory, RabbitClient, Stack, Request, ResourceNotFoundError } from '../common';
+import { Logger, LoggerFactory, RabbitClient, Stack, Request, ResourceNotFoundError, EventEmitter } from '../common';
 import { ServiceModel, Service } from '../models';
-const objectHash: any = require('object-hash');
-import http = require('http');
 import { Topology, APP_CONFIG } from '../config';
 import { ServiceUtils } from '../utils';
+import http = require('http');
+const objectHash: any = require('object-hash');
 
 export class ServiceManager {
   public serviceTable: {};
   private serviceStacks: {};
   private lastUsedService: {};
   private rabbitClient: RabbitClient;
-  
+
   private static LOGGER: Logger = LoggerFactory.getLogger();
-  
+
   constructor() {
     this.serviceTable = {};
     this.serviceStacks = {};
@@ -22,78 +22,71 @@ export class ServiceManager {
   }
 
   /**
-   * Creates a new service object, updates the service stack and notifies the gateway 
-   * 
-   * @param {Service} serviceOptions 
-   * @returns {Promise<any>} 
-   * 
+   * Creates a new service object, updates the service stack and notifies the gateway
+   *
+   * @param {Service} serviceOptions
+   * @returns {Promise<any>}
+   *
    * @memberOf ServiceManager
    */
   registerService(serviceOptions: Service): Promise<any> {
     ServiceManager.LOGGER.info(`Registering new service - ${JSON.stringify(serviceOptions)}`);
     const newService = new ServiceModel(
       serviceOptions.host, serviceOptions.port, serviceOptions.name,
-      'READY', serviceOptions.routingPath, serviceOptions.options
+      serviceOptions.state || 'READY', serviceOptions.routingPath, serviceOptions.options, 
+      serviceOptions.id 
     );
-    
-    const serviceId = objectHash(newService);
-    this.serviceTable[serviceId] = newService;
 
-    if (!this.serviceStacks[newService.name]) {
-      // this.generalQueue.publishMessage(
-      //   this.generalQueue.generalExchange,
-      //   this.generalQueue.messageTypes.NEW_SERVICE,
-      //   '',
-      //   serviceOptions
-      // );
-      this.notifyGateway(newService);
+    if (!newService.id) {
+      newService.id = objectHash(newService);
     }
-    
-    this.updateStack(serviceOptions.name, serviceId);
-    
 
-    return Promise.resolve(serviceId);
-  }
+    this.serviceTable[newService.id] = newService;
 
-  registerHandlers() {
-    ServiceManager.updateStatus.bind(this);
-    
-    this.rabbitClient.rabbitConnection.handle(
-      Topology.MESSAGES.newService,
-      ServiceManager.updateStatus
-    );
+    // Notify gateway on new service
+    if (!this.serviceStacks[newService.name]) {
+       this.rabbitClient.publishMessage(
+         Topology.MESSAGES.newService,
+         '',
+         serviceOptions
+       );
+    }
+
+    this.updateStack(serviceOptions.name, newService.id);
+
+
+    return Promise.resolve(newService);
   }
 
   /**
-   * Notify gateway on a new registered service
-   *
-   * @todo Use RabbitMQ transport layer in order to notify the gateway 
-   * @param {Service} newService 
-   * 
-   * @memberOf ServiceManager
+   * @todo Add service instance HEARTBEAT check through AMQP messages
+   * @param newService 
    */
-  notifyGateway(newService: Service) {
-    const requestOptions = <Request> {
-      protocol: 'http:',
-      host: APP_CONFIG.gatewayHost,
-      port: APP_CONFIG.gatewayPort,
-      path: '/register',
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    };
-    
-    const requestBody = newService.toJSON();
-    ServiceManager.LOGGER.debug(`Calling gateway on new service - ${JSON.stringify(newService)}`);
-    ServiceUtils.sendRequest(requestOptions, requestBody);
+  static updateFromConfigFile(newService: Service) {
+    this['registerService'](newService)
+      .then(service => {
+        ServiceManager.LOGGER.debug('Registered service from config file');
+      });
+  }
+
+  registerHandlers() {
+    ServiceManager.LOGGER.debug('Registering message handlers');
+
+    this.rabbitClient.rabbitConnection.handle(
+      Topology.MESSAGES.serviceUpdate,
+      ServiceManager.updateStatus.bind(this)
+    );
+
+    EventEmitter.eventEmitter.on(EventEmitter.UPDATE_FROM_FILE, ServiceManager.updateFromConfigFile.bind(this));
   }
 
   /**
    * Change service status on new notifications.
    * Status list - 'READY', 'HEARTBEAT', 'STARTED', 'DOWN'
-   * 
+   *
    * @static
-   * @param {*} message 
-   * 
+   * @param {*} message
+   *
    * @memberOf ServiceManager
    */
   static updateStatus(message: any) {
@@ -107,10 +100,10 @@ export class ServiceManager {
 
   /**
    * Adds a new service to the service stack
-   * 
-   * @param {string} serviceName 
-   * @param {string} serviceId 
-   * 
+   *
+   * @param {string} serviceName
+   * @param {string} serviceId
+   *
    * @memberOf ServiceManager
    */
   updateStack(serviceName: string, serviceId: string) {
@@ -121,13 +114,13 @@ export class ServiceManager {
 
     this.serviceStacks[serviceName].push(serviceId);
   }
-  
+
   /**
    * Searches for an available service in in the stack
-   * 
-   * @param {string} serviceName 
-   * @returns {Promise<any>} 
-   * 
+   *
+   * @param {string} serviceName
+   * @returns {Promise<any>}
+   *
    * @memberOf ServiceManager
    */
   getAvailableService(serviceName: string): Promise<any> {
@@ -138,7 +131,7 @@ export class ServiceManager {
     } else {
       return Promise.reject(new ResourceNotFoundError());
     }
-    
+
     return Promise.resolve(this.serviceTable[serviceId].toJSON());
   }
 }
