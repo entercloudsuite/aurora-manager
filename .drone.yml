@@ -3,7 +3,7 @@ pipeline:
     image: node:6.9
     commands:
         - npm install --silent
-        - run --silent build || true
+        - npm run --silent build || true
         - npm run test
 
   publish:
