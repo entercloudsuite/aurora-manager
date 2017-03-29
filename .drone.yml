@@ -8,13 +8,15 @@ pipeline:
 
   publish:
     image: plugins/docker
-    repo: ecsdevops/aurora-manager
-    tags: 
-      - "latest"
-      - ${DRONE_COMMIT_SHA}
+    repo: ecsdevops/aurora-gateway
     username: ecsdevops
     password: ${DOCKER_PASSWORD}
+    tags:
+      - latest
+      - ${DRONE_COMMIT_SHA}
 
 services:
+  redis:
+    image: redis:alpine
   rabbit:
     image: rabbitmq:alpine
