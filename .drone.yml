@@ -9,6 +9,9 @@ pipeline:
   publish:
     image: plugins/docker
     repo: ecsdevops/aurora-manager
+    tags: 
+      - "latest"
+      - ${DRONE_COMMIT_SHA}
     username: ecsdevops
     password: ${DOCKER_PASSWORD}
 
